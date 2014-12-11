@@ -1,0 +1,8 @@
+dans cet exercice nous allons créer, à l'aide de Docker, deux containers :
+
+1- le premier contient le serveur cartographique : geoserver
+2- le deuxième contient le SGBD postgresql
+
+ensuite nous allons connecter les deux serveurs entre eux pour qu'on puisse charger des shapefile de postgsql dans geoserver
+
+le but sera de visualiser les couche dans un client sur windows!

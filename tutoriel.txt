@@ -1,0 +1,141 @@
+﻿Tutoriel exercice Docker :
+
+le but de cet exercice est de manipuler les containers à l'aide du Docker.
+l'exercice est réalisé sur une machine Windows. Pour pouvoir utiliser les conteneurs Linux, on va se servir de la machine vituelle
+personnalisée : boo2docker
+
+dans ce document vous trouverez toutes les étapes que j'ai suivi dans mon projet:
+
+******* les outils dont on aura besoin *************
+
+1- Git : doit être installer sur votre machine pour pouvoir cloner des répértoires de github
+2- ConsoleZ : une console dans laquelle on exécutera les commande docker. Vous la trouverez dans mon dépot github : https://github.com/marmarih/docker_example
+3- Vagrant : doit être installé pour pouvoir configurer la machine guest avec le hôte
+3- oracle VM VirtualBox
+****** c'est parti! ********
+
+- on commence par la création de notre workspace. par exemple on le crée dans la répartition D : "D:\workspace"
+- on télécharge le répértoire https://github.com/marmarih/docker_example et on le met dans notre workspace. Pour se faire :
+		* dans le cmd on se positionne dans le workspace
+		* on lance la commande qui nous permet le téléchargement du répértoire : https://github.com/marmarih/docker_example
+- Dans le répértoire : "D:\workspace\docker_example\ConsoleZ.x64.1.12.0.14282" on exécute : console.exe
+
+**Maintenant on va vérifier si vagrant est bien installé :
+- dans la console ouverte on exécute la commande : vagrant -v 
+==>le programme doit nous renvoyer la version de vagrant installée ( vagant 1.6.5 dans mon cas)
+
+
+**je télécharge et j'installe le vagrant proxy par la commande : vagrant plugin install vagrant-proxyconf
+ ATTENTION : si vous arrivez pas à le télécharger, vous avez probablement des problèmes dans la configuration du proxy!!
+
+** on télécharge la machine virtuelle Docker.
+-dans le cmd : vagrant box add dduportal/boot2docker https://github.com/marmarih/docker_example
+
+**on se place dans le répértoire où se trouve le vagrantfile : cd D:\workspace\docker_example
+ensuite on branche la VM par la commande: vagrant up
+
+**on exécute la console putty.exe qui se trouve dans le répértoire docker_example
+on s'authentifie par :
+-login : docker
+-password : tcuser
+
+//////////////////////////////////Maintenant vous êtes dans la VM boo2docker\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+**********************************POSTGRESQL/POSTGIS**********************************
+
+- on se place dans le répértoire "vagrant/simple-db" par : cd vagrant/simple-db
+- on exécute la commande : sh run.sh
+
+ainsi nous avons:
+1- chargé une image de postgresql/postgis qui s'appelle : jamesbrink/postgresql ( docker pull jamesbrink/postgresql)
+2- crée un container à la base de cette image et nous l'avons nommé : dbserver  ( docker run --name dbserver -d -p 5432:5432 jamesbrink/postgresql)
+par cette commande nous avons aussi branché le port 5432 du container avec le port 5432 du docker 
+3- par la dernière commande nous avons crée un client qui a crée une base de donnée dab qui contient une table comptes ... (voir le fichier comptes.sql)
+
+les commandes suivantes nous permettent d'accéder à postgresl et à nos BD :
+
+avant de commencer nous aurons besoin de l'adresse IP de notre serveur postgresql. Pour la récupérer on fait :
+1- (docker ps -a ) et on récupère le ID de notre dbserver
+2- (docker inspect ID_du_bdserver) et on récupère l'adresse IP de bdserver on la note IP
+ensuite  
+3- (docker run -ti jamesbrink/postgresql /bin/bash)  : nous permet de crée un container vide et le rendre client de notre bdserver
+4- ( psql -U postgres -p 5432 -h IP ) : permet le client d'écouter le serveur sur le port 5432 et d'y accéder
+
+ainsi nous sommes dans le postgresql.
+
+5- la commande \l permet d'afficher l'ensemble des BD
+6- la commande \c nom_BD permet d'accéder à la bd dont le nom est nom_bd
+
+Nous aurons besoin de l'extension postgis. on accède à notre BD : \c dab et on l'installe avec la commande :
+CREATE EXTENSION POSTGIS;
+
+pour quitter le client : exit
+
+
+
+**********************************GEOSERVER**********************************
+
+dans cette partie nous allons créer un serveur cartographique connecté à notre serveur postgresql 
+
+on exécute la commande : 
+1- docker pull kartoza/geoserver ==> pour charger l'image du geoserver
+2- docker run --name geoserver -d --link dbserver:ps  -p 8080:8080 kartoza/geoserver ==> pour créer un container sur la base de l'image chargée,
+le container est nommé "geoserver", il est liée à notre dbserver et nous avons branché le port 8080 du container avec le port 8080 du docker
+
+
+
+/////////////////////////////////////////////////Dans WINDOWS\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+//geoserver
+dans le navigateur on tape : localhost:8080/geoserver si la page s'affiche alors le serveur carto est bien crée.
+
+//pgAdmin
+dans l'interface de pgAdmin on ajoute une connextion à un serveur avec les élèments de connexion suivants :
+
+Nom : MyDB
+Hôte: 127.0.0.1
+Port TCP:2200         // le seveur postgres/postgis est branché au port 8080 sur Windows
+Mot de passe: postgres
+
+par ceci nous avons crée une connexion entre le potgres/postgis Windows et notre postgres/postgis de la VM
+
+on note que dans le vagrantfile nous avons configuré les ports de telle sorte que :
+1- le port 8080 du windows soit branché au port 8080 du docker
+2- le port 2200 du windos soit branché au port 5432 du docker
+
+
+
+
+POSTGIS-POSTGRESQL
+
+dans postgis j'ajoute une couche vecteur que j'ai crée avec QGIS et qui s'appelle : MaCouche.shp 
+1- add file
+2- import
+les élèment de connexion :
+
+username : postgres
+password : postgres
+server host : 127.0.0.1			2200
+base de donnée : dab
+
+
+GEOSERVER-POSTGESQL
+
+
+
+dans l'interface du geoserver:
+
+==>> créer un entrepot et choisir comme source de données : postgis
+
+host : "dbserver IP" dans mon cas : 172.17.0.2
+port : 5432
+database : dab
+user : postgres
+password : postgres
+
+=>> publier la couche chargée
+
+EPSG : 4632
+
+==>> visualiser les données
