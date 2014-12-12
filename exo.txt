@@ -5,4 +5,4 @@ dans cet exercice nous allons créer, à l'aide de Docker, deux containers :
 
 ensuite nous allons connecter les deux serveurs entre eux pour qu'on puisse charger des shapefile de postgsql dans geoserver
 
-le but sera de visualiser les couche dans un client sur windows!
+le but sera de visualiser les couches dans un client sur windows!
